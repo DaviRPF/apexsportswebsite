@@ -1,9 +1,23 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Header.css';
 
 const Header = ({ user }) => {
   const navigate = useNavigate();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef(null);
+
+  // Fechar menu ao clicar fora
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -37,19 +51,69 @@ const Header = ({ user }) => {
           </div>
         </div>
 
-        <div className="header-user">
-          <div className="user-avatar">
-            {user?.foto_perfil ? (
-              <img src={user.foto_perfil} alt={user.nome} className="avatar-image" />
-            ) : (
-              user?.nome?.charAt(0).toUpperCase()
-            )}
-          </div>
-          <div className="user-info">
+        <div className="header-user" ref={menuRef}>
+          <div className="user-info-desktop">
             <p className="user-name">{user?.nome}</p>
-            <button className="btn-logout" onClick={handleLogout}>
-              Sair
-            </button>
+            <p className="user-email">{user?.email}</p>
+          </div>
+
+          <div className="user-avatar-wrapper">
+            <div className="user-avatar" onClick={() => setMenuOpen(!menuOpen)}>
+              {user?.foto_perfil ? (
+                <img src={user.foto_perfil} alt={user.nome} className="avatar-image" />
+              ) : (
+                user?.nome?.charAt(0).toUpperCase()
+              )}
+            </div>
+
+            {menuOpen && (
+              <div className="user-menu">
+                <div className="user-menu-header">
+                  <div className="menu-avatar">
+                    {user?.foto_perfil ? (
+                      <img src={user.foto_perfil} alt={user.nome} />
+                    ) : (
+                      user?.nome?.charAt(0).toUpperCase()
+                    )}
+                  </div>
+                  <div className="menu-user-info">
+                    <p className="menu-user-name">{user?.nome}</p>
+                    <p className="menu-user-email">{user?.email}</p>
+                    <span className="menu-user-role">{getRoleLabel(user?.tipo)}</span>
+                  </div>
+                </div>
+
+                <div className="user-menu-divider"></div>
+
+                <button className="menu-item" onClick={() => {
+                  setMenuOpen(false);
+                  navigate('/perfil');
+                }}>
+                  <span className="menu-icon">👤</span>
+                  Meu Perfil
+                </button>
+
+                {(user?.tipo === 'admin' || user?.tipo === 'professoradm') && (
+                  <button className="menu-item" onClick={() => {
+                    setMenuOpen(false);
+                    navigate('/professor-adm');
+                  }}>
+                    <span className="menu-icon">⚙️</span>
+                    Configurações
+                  </button>
+                )}
+
+                <div className="user-menu-divider"></div>
+
+                <button className="menu-item menu-item-danger" onClick={() => {
+                  setMenuOpen(false);
+                  handleLogout();
+                }}>
+                  <span className="menu-icon">🚪</span>
+                  Sair
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
