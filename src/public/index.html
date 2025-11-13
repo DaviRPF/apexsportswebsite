@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Apex Sports - Painel de Controle</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: white;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .header-left {
+            text-align: left;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .user-info {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 10px 20px;
+            border-radius: 8px;
+            backdrop-filter: blur(10px);
+        }
+
+        .user-name {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .user-tipo {
+            font-size: 12px;
+            opacity: 0.9;
+            text-transform: capitalize;
+        }
+
+        .btn-logout {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 2px solid white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-logout:hover {
+            background: white;
+            color: #667eea;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 5px;
+        }
+
+        .subtitle {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .tab-button {
+            padding: 12px 24px;
+            background: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s;
+            color: #667eea;
+        }
+
+        .tab-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .tab-button.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .qr-section {
+            text-align: center;
+            padding: 30px;
+        }
+
+        #qrcode {
+            max-width: 300px;
+            margin: 20px auto;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            margin-top: 15px;
+        }
+
+        .status.connected {
+            background: #10b981;
+            color: white;
+        }
+
+        .status.disconnected {
+            background: #ef4444;
+            color: white;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        button[type="submit"], .btn {
+            background: #667eea;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        button[type="submit"]:hover, .btn:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-danger {
+            background: #ef4444;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        th {
+            background: #f9fafb;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        tr:hover {
+            background: #f9fafb;
+        }
+
+        .actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 14px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #6b7280;
+        }
+
+        .success-message {
+            background: #10b981;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .success-message.show {
+            display: block;
+            animation: slideDown 0.3s;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-left">
+                <h1>⚽ Apex Sports</h1>
+                <p class="subtitle">Painel de Controle do Chatbot</p>
+            </div>
+            <div class="header-right">
+                <div class="user-info">
+                    <div class="user-name" id="user-name">Carregando...</div>
+                    <div class="user-tipo" id="user-tipo"></div>
+                </div>
+                <button class="btn-logout" onclick="logout()">Sair</button>
+            </div>
+        </header>
+
+        <div class="tabs" id="tabs-container">
+            <button class="tab-button active" onclick="showTab('qrcode')">QR Code</button>
+            <button class="tab-button" onclick="showTab('config')">Configurações</button>
+            <button class="tab-button" onclick="showTab('esportes')">Esportes</button>
+            <button class="tab-button" onclick="showTab('turmas')">Turmas</button>
+            <button class="tab-button" onclick="showTab('leads')">Leads</button>
+            <button class="tab-button" onclick="showTab('agendamentos')">Agendamentos</button>
+            <button class="tab-button" onclick="showTab('historicos')">Históricos</button>
+            <button class="tab-button" id="usuarios-tab-btn" onclick="showTab('usuarios')" style="display: none;">Usuários</button>
+        </div>
+
+        <!-- Tab QR Code -->
+        <div id="qrcode-tab" class="tab-content active">
+            <div class="qr-section">
+                <h2>Conectar WhatsApp</h2>
+                <p>Escaneie o QR Code com seu WhatsApp</p>
+                <div id="qrcode"></div>
+                <div id="connection-status"></div>
+            </div>
+        </div>
+
+        <!-- Tab Configurações -->
+        <div id="config-tab" class="tab-content">
+            <h2>Informações da Escola</h2>
+            <div class="success-message" id="config-success">Configurações salvas com sucesso!</div>
+            <form id="config-form">
+                <div class="form-group">
+                    <label for="info_escola">Informações da Escola</label>
+                    <textarea id="info_escola" placeholder="Digite informações sobre a escola, endereço, diferenciais, etc."></textarea>
+                </div>
+                <button type="submit">Salvar Configurações</button>
+            </form>
+        </div>
+
+        <!-- Tab Esportes -->
+        <div id="esportes-tab" class="tab-content">
+            <h2>Gerenciar Esportes</h2>
+            <div class="success-message" id="esporte-success">Operação realizada com sucesso!</div>
+            <form id="esporte-form">
+                <div class="grid">
+                    <div class="form-group">
+                        <label for="esporte_nome">Nome do Esporte</label>
+                        <input type="text" id="esporte_nome" placeholder="Ex: Futebol" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="esporte_descricao">Descrição</label>
+                        <input type="text" id="esporte_descricao" placeholder="Ex: Treino de campo completo">
+                    </div>
+                </div>
+                <button type="submit">Adicionar Esporte</button>
+            </form>
+            <div id="esportes-list"></div>
+        </div>
+
+        <!-- Tab Turmas -->
+        <div id="turmas-tab" class="tab-content">
+            <h2>Gerenciar Turmas</h2>
+            <div class="success-message" id="turma-success">Operação realizada com sucesso!</div>
+            <form id="turma-form">
+                <div class="grid">
+                    <div class="form-group">
+                        <label for="turma_esporte">Esporte</label>
+                        <select id="turma_esporte" required></select>
+                    </div>
+                    <div class="form-group">
+                        <label for="turma_nome">Nome da Turma</label>
+                        <input type="text" id="turma_nome" placeholder="Ex: Infantil Manhã" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="turma_dia">Dia da Semana</label>
+                        <select id="turma_dia" required>
+                            <option value="">Selecione...</option>
+                            <option value="Segunda-feira">Segunda-feira</option>
+                            <option value="Terça-feira">Terça-feira</option>
+                            <option value="Quarta-feira">Quarta-feira</option>
+                            <option value="Quinta-feira">Quinta-feira</option>
+                            <option value="Sexta-feira">Sexta-feira</option>
+                            <option value="Sábado">Sábado</option>
+                            <option value="Domingo">Domingo</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="turma_horario">Horário</label>
+                        <input type="time" id="turma_horario" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="turma_vagas">Vagas Disponíveis</label>
+                        <input type="number" id="turma_vagas" value="10" min="1" required>
+                    </div>
+                </div>
+                <button type="submit">Adicionar Turma</button>
+            </form>
+            <div id="turmas-list"></div>
+        </div>
+
+        <!-- Tab Leads -->
+        <div id="leads-tab" class="tab-content">
+            <h2>Leads Capturados</h2>
+            <div id="leads-list"></div>
+        </div>
+
+        <!-- Tab Agendamentos -->
+        <div id="agendamentos-tab" class="tab-content">
+            <h2>Agendamentos de Aulas Experimentais</h2>
+            <div id="agendamentos-list"></div>
+        </div>
+
+        <!-- Tab Históricos -->
+        <div id="historicos-tab" class="tab-content">
+            <h2>Históricos de Conversas</h2>
+            <p style="color: #6b7280; margin-bottom: 20px;">Veja todas as conversas com clientes e limpe quando necessário</p>
+            <div id="historicos-list"></div>
+        </div>
+
+        <!-- Tab Usuários (apenas para admin) -->
+        <div id="usuarios-tab" class="tab-content">
+            <h2>Gerenciar Usuários</h2>
+            <div class="success-message" id="usuario-success">Operação realizada com sucesso!</div>
+            <form id="usuario-form">
+                <div class="grid">
+                    <div class="form-group">
+                        <label for="usuario_nome">Nome</label>
+                        <input type="text" id="usuario_nome" placeholder="Nome completo" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="usuario_email">Email</label>
+                        <input type="email" id="usuario_email" placeholder="email@exemplo.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="usuario_senha">Senha</label>
+                        <input type="password" id="usuario_senha" placeholder="Mínimo 6 caracteres" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="usuario_tipo">Tipo de Conta</label>
+                        <select id="usuario_tipo" required>
+                            <option value="">Selecione...</option>
+                            <option value="aluno">Aluno</option>
+                            <option value="professor">Professor</option>
+                            <option value="atendente">Atendente</option>
+                            <option value="admin">Administrador</option>
+                        </select>
+                    </div>
+                </div>
+                <button type="submit">Adicionar Usuário</button>
+            </form>
+            <div id="usuarios-list"></div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
