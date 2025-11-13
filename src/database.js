@@ -106,13 +106,268 @@ function createTables() {
       nome TEXT NOT NULL,
       email TEXT UNIQUE NOT NULL,
       senha TEXT NOT NULL,
-      tipo TEXT NOT NULL CHECK(tipo IN ('aluno', 'professor', 'atendente', 'admin')),
+      tipo TEXT NOT NULL CHECK(tipo IN ('aluno', 'professor', 'professoradm', 'atendente', 'admin')),
       ativo INTEGER DEFAULT 1,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
+
+    CREATE TABLE IF NOT EXISTS exercicios (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      nome TEXT NOT NULL,
+      descricao TEXT,
+      modalidade TEXT NOT NULL,
+      fundamento TEXT NOT NULL,
+      sub_fundamento TEXT,
+      criado_por INTEGER NOT NULL,
+      ativo INTEGER DEFAULT 1,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (criado_por) REFERENCES usuarios(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS exercicios_designados (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      exercicio_id INTEGER NOT NULL,
+      aluno_id INTEGER NOT NULL,
+      professor_id INTEGER NOT NULL,
+      tipo_orientacao TEXT CHECK(tipo_orientacao IN ('tempo', 'repeticao')),
+      valor_orientacao INTEGER,
+      status TEXT DEFAULT 'pendente' CHECK(status IN ('pendente', 'concluido')),
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (exercicio_id) REFERENCES exercicios(id),
+      FOREIGN KEY (aluno_id) REFERENCES usuarios(id),
+      FOREIGN KEY (professor_id) REFERENCES usuarios(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS historico_treinos (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      exercicio_designado_id INTEGER NOT NULL,
+      aluno_id INTEGER NOT NULL,
+      tipo_realizado TEXT CHECK(tipo_realizado IN ('tempo', 'repeticao')),
+      valor_realizado INTEGER NOT NULL,
+      data_conclusao DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (exercicio_designado_id) REFERENCES exercicios_designados(id),
+      FOREIGN KEY (aluno_id) REFERENCES usuarios(id)
+    );
   `);
 }
+
+// Funções de exercícios
+export const getExercicios = () => {
+  const stmt = db.prepare(`
+    SELECT e.*, u.nome as criador_nome
+    FROM exercicios e
+    JOIN usuarios u ON e.criado_por = u.id
+    WHERE e.ativo = 1
+    ORDER BY e.created_at DESC
+  `);
+  const results = [];
+
+  while (stmt.step()) {
+    results.push(stmt.getAsObject());
+  }
+  stmt.free();
+
+  return results;
+};
+
+export const getExercicioById = (id) => {
+  const stmt = db.prepare('SELECT * FROM exercicios WHERE id = ? AND ativo = 1');
+  stmt.bind([id]);
+
+  let exercicio = null;
+  if (stmt.step()) {
+    exercicio = stmt.getAsObject();
+  }
+  stmt.free();
+
+  return exercicio;
+};
+
+export const addExercicio = (nome, descricao, modalidade, fundamento, sub_fundamento, criado_por) => {
+  db.run(
+    'INSERT INTO exercicios (nome, descricao, modalidade, fundamento, sub_fundamento, criado_por) VALUES (?, ?, ?, ?, ?, ?)',
+    [nome, descricao, modalidade, fundamento, sub_fundamento, criado_por]
+  );
+  saveDB();
+
+  const stmt = db.prepare('SELECT last_insert_rowid() as id');
+  stmt.step();
+  const id = stmt.getAsObject().id;
+  stmt.free();
+
+  return { lastInsertRowid: id };
+};
+
+export const updateExercicio = (id, nome, descricao, modalidade, fundamento, sub_fundamento) => {
+  db.run(
+    'UPDATE exercicios SET nome = ?, descricao = ?, modalidade = ?, fundamento = ?, sub_fundamento = ? WHERE id = ?',
+    [nome, descricao, modalidade, fundamento, sub_fundamento, id]
+  );
+  saveDB();
+};
+
+export const deleteExercicio = (id) => {
+  db.run('UPDATE exercicios SET ativo = 0 WHERE id = ?', [id]);
+  saveDB();
+};
+
+// Funções de exercícios designados
+export const designarExercicio = (exercicio_id, aluno_id, professor_id, tipo_orientacao, valor_orientacao) => {
+  db.run(
+    'INSERT INTO exercicios_designados (exercicio_id, aluno_id, professor_id, tipo_orientacao, valor_orientacao) VALUES (?, ?, ?, ?, ?)',
+    [exercicio_id, aluno_id, professor_id, tipo_orientacao, valor_orientacao]
+  );
+  saveDB();
+
+  const stmt = db.prepare('SELECT last_insert_rowid() as id');
+  stmt.step();
+  const id = stmt.getAsObject().id;
+  stmt.free();
+
+  return { lastInsertRowid: id };
+};
+
+export const getExerciciosDesignadosAluno = (aluno_id) => {
+  const stmt = db.prepare(`
+    SELECT ed.*, e.nome as exercicio_nome, e.descricao as exercicio_descricao,
+           e.modalidade, e.fundamento, e.sub_fundamento,
+           p.nome as professor_nome
+    FROM exercicios_designados ed
+    JOIN exercicios e ON ed.exercicio_id = e.id
+    JOIN usuarios p ON ed.professor_id = p.id
+    WHERE ed.aluno_id = ?
+    ORDER BY ed.created_at DESC
+  `);
+  stmt.bind([aluno_id]);
+
+  const results = [];
+  while (stmt.step()) {
+    results.push(stmt.getAsObject());
+  }
+  stmt.free();
+
+  return results;
+};
+
+export const getExerciciosDesignadosProfessor = (professor_id) => {
+  const stmt = db.prepare(`
+    SELECT ed.*, e.nome as exercicio_nome, e.descricao as exercicio_descricao,
+           e.modalidade, e.fundamento, e.sub_fundamento,
+           a.nome as aluno_nome, a.email as aluno_email
+    FROM exercicios_designados ed
+    JOIN exercicios e ON ed.exercicio_id = e.id
+    JOIN usuarios a ON ed.aluno_id = a.id
+    WHERE ed.professor_id = ?
+    ORDER BY ed.created_at DESC
+  `);
+  stmt.bind([professor_id]);
+
+  const results = [];
+  while (stmt.step()) {
+    results.push(stmt.getAsObject());
+  }
+  stmt.free();
+
+  return results;
+};
+
+export const getAllExerciciosDesignados = () => {
+  const stmt = db.prepare(`
+    SELECT ed.*, e.nome as exercicio_nome,
+           a.nome as aluno_nome, p.nome as professor_nome
+    FROM exercicios_designados ed
+    JOIN exercicios e ON ed.exercicio_id = e.id
+    JOIN usuarios a ON ed.aluno_id = a.id
+    JOIN usuarios p ON ed.professor_id = p.id
+    ORDER BY ed.created_at DESC
+  `);
+  const results = [];
+
+  while (stmt.step()) {
+    results.push(stmt.getAsObject());
+  }
+  stmt.free();
+
+  return results;
+};
+
+export const deleteExercicioDesignado = (id) => {
+  db.run('DELETE FROM exercicios_designados WHERE id = ?', [id]);
+  saveDB();
+};
+
+// Funções de histórico de treinos
+export const concluirExercicio = (exercicio_designado_id, aluno_id, tipo_realizado, valor_realizado) => {
+  // Adicionar ao histórico
+  db.run(
+    'INSERT INTO historico_treinos (exercicio_designado_id, aluno_id, tipo_realizado, valor_realizado) VALUES (?, ?, ?, ?)',
+    [exercicio_designado_id, aluno_id, tipo_realizado, valor_realizado]
+  );
+
+  // Marcar exercício como concluído
+  db.run(
+    "UPDATE exercicios_designados SET status = 'concluido' WHERE id = ?",
+    [exercicio_designado_id]
+  );
+
+  saveDB();
+
+  const stmt = db.prepare('SELECT last_insert_rowid() as id');
+  stmt.step();
+  const id = stmt.getAsObject().id;
+  stmt.free();
+
+  return { lastInsertRowid: id };
+};
+
+export const getHistoricoAluno = (aluno_id) => {
+  const stmt = db.prepare(`
+    SELECT ht.*, ed.tipo_orientacao, ed.valor_orientacao,
+           e.nome as exercicio_nome, e.descricao as exercicio_descricao,
+           e.modalidade, e.fundamento, e.sub_fundamento,
+           p.nome as professor_nome
+    FROM historico_treinos ht
+    JOIN exercicios_designados ed ON ht.exercicio_designado_id = ed.id
+    JOIN exercicios e ON ed.exercicio_id = e.id
+    JOIN usuarios p ON ed.professor_id = p.id
+    WHERE ht.aluno_id = ?
+    ORDER BY ht.data_conclusao DESC
+  `);
+  stmt.bind([aluno_id]);
+
+  const results = [];
+  while (stmt.step()) {
+    results.push(stmt.getAsObject());
+  }
+  stmt.free();
+
+  return results;
+};
+
+export const getHistoricoAlunoMes = (aluno_id, ano, mes) => {
+  const stmt = db.prepare(`
+    SELECT ht.*, ed.tipo_orientacao, ed.valor_orientacao,
+           e.nome as exercicio_nome, e.modalidade, e.fundamento,
+           DATE(ht.data_conclusao) as data
+    FROM historico_treinos ht
+    JOIN exercicios_designados ed ON ht.exercicio_designado_id = ed.id
+    JOIN exercicios e ON ed.exercicio_id = e.id
+    WHERE ht.aluno_id = ?
+      AND strftime('%Y', ht.data_conclusao) = ?
+      AND strftime('%m', ht.data_conclusao) = ?
+    ORDER BY ht.data_conclusao DESC
+  `);
+  stmt.bind([aluno_id, ano.toString(), mes.toString().padStart(2, '0')]);
+
+  const results = [];
+  while (stmt.step()) {
+    results.push(stmt.getAsObject());
+  }
+  stmt.free();
+
+  return results;
+};
 
 // Funções de configuração da escola
 export const getConfig = (chave) => {

@@ -25,7 +25,20 @@ import {
   createUsuario,
   updateUsuario,
   updateUsuarioSenha,
-  deleteUsuario
+  deleteUsuario,
+  getExercicios,
+  getExercicioById,
+  addExercicio,
+  updateExercicio,
+  deleteExercicio,
+  designarExercicio,
+  getExerciciosDesignadosAluno,
+  getExerciciosDesignadosProfessor,
+  getAllExerciciosDesignados,
+  deleteExercicioDesignado,
+  concluirExercicio,
+  getHistoricoAluno,
+  getHistoricoAlunoMes
 } from './database.js';
 import { getQRCode, getConnectionStatus } from './whatsapp.js';
 
@@ -76,6 +89,30 @@ const requireAdminOrAtendente = (req, res, next) => {
   const usuario = getUsuarioById(req.session.userId);
   if (!usuario || (usuario.tipo !== 'admin' && usuario.tipo !== 'atendente')) {
     return res.status(403).json({ error: 'Acesso negado.' });
+  }
+  next();
+};
+
+// Middleware para verificar se é professor ADM
+const requireProfessorAdm = (req, res, next) => {
+  if (!req.session.userId) {
+    return res.status(401).json({ error: 'Não autenticado' });
+  }
+  const usuario = getUsuarioById(req.session.userId);
+  if (!usuario || (usuario.tipo !== 'professoradm' && usuario.tipo !== 'admin')) {
+    return res.status(403).json({ error: 'Acesso negado. Apenas professores administradores.' });
+  }
+  next();
+};
+
+// Middleware para verificar se é professor (ADM ou normal)
+const requireProfessor = (req, res, next) => {
+  if (!req.session.userId) {
+    return res.status(401).json({ error: 'Não autenticado' });
+  }
+  const usuario = getUsuarioById(req.session.userId);
+  if (!usuario || (usuario.tipo !== 'professor' && usuario.tipo !== 'professoradm' && usuario.tipo !== 'admin')) {
+    return res.status(403).json({ error: 'Acesso negado. Apenas professores.' });
   }
   next();
 };
@@ -269,6 +306,203 @@ app.delete('/api/conversas/:telefone', requireAdminOrAtendente, (req, res) => {
 });
 
 // ============================================
+// ROTAS DE EXERCÍCIOS
+// ============================================
+
+// Listar todos os exercícios (professores e admins)
+app.get('/api/exercicios', requireProfessor, (req, res) => {
+  res.json(getExercicios());
+});
+
+// Criar novo exercício (apenas professoradm)
+app.post('/api/exercicios', requireProfessorAdm, (req, res) => {
+  try {
+    const { nome, descricao, modalidade, fundamento, sub_fundamento } = req.body;
+
+    if (!nome || !modalidade || !fundamento) {
+      return res.status(400).json({ error: 'Nome, modalidade e fundamento são obrigatórios' });
+    }
+
+    const result = addExercicio(nome, descricao, modalidade, fundamento, sub_fundamento, req.session.userId);
+    res.json({ success: true, id: result.lastInsertRowid });
+  } catch (error) {
+    console.error('Erro ao criar exercício:', error);
+    res.status(500).json({ error: 'Erro ao criar exercício' });
+  }
+});
+
+// Atualizar exercício (apenas professoradm)
+app.put('/api/exercicios/:id', requireProfessorAdm, (req, res) => {
+  try {
+    const { id } = req.params;
+    const { nome, descricao, modalidade, fundamento, sub_fundamento } = req.body;
+
+    if (!nome || !modalidade || !fundamento) {
+      return res.status(400).json({ error: 'Nome, modalidade e fundamento são obrigatórios' });
+    }
+
+    updateExercicio(id, nome, descricao, modalidade, fundamento, sub_fundamento);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Erro ao atualizar exercício:', error);
+    res.status(500).json({ error: 'Erro ao atualizar exercício' });
+  }
+});
+
+// Deletar exercício (apenas professoradm)
+app.delete('/api/exercicios/:id', requireProfessorAdm, (req, res) => {
+  try {
+    const { id } = req.params;
+    deleteExercicio(id);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Erro ao deletar exercício:', error);
+    res.status(500).json({ error: 'Erro ao deletar exercício' });
+  }
+});
+
+// ============================================
+// ROTAS DE DESIGNAÇÃO DE EXERCÍCIOS
+// ============================================
+
+// Designar exercício para aluno (professores)
+app.post('/api/exercicios-designados', requireProfessor, (req, res) => {
+  try {
+    const { exercicio_id, aluno_id, tipo_orientacao, valor_orientacao } = req.body;
+
+    if (!exercicio_id || !aluno_id) {
+      return res.status(400).json({ error: 'Exercício e aluno são obrigatórios' });
+    }
+
+    const result = designarExercicio(
+      exercicio_id,
+      aluno_id,
+      req.session.userId,
+      tipo_orientacao,
+      valor_orientacao
+    );
+    res.json({ success: true, id: result.lastInsertRowid });
+  } catch (error) {
+    console.error('Erro ao designar exercício:', error);
+    res.status(500).json({ error: 'Erro ao designar exercício' });
+  }
+});
+
+// Listar exercícios designados do aluno logado
+app.get('/api/meus-exercicios', requireAuth, (req, res) => {
+  try {
+    const usuario = getUsuarioById(req.session.userId);
+
+    if (usuario.tipo !== 'aluno') {
+      return res.status(403).json({ error: 'Apenas alunos podem acessar seus exercícios' });
+    }
+
+    res.json(getExerciciosDesignadosAluno(req.session.userId));
+  } catch (error) {
+    console.error('Erro ao listar exercícios do aluno:', error);
+    res.status(500).json({ error: 'Erro ao listar exercícios' });
+  }
+});
+
+// Listar exercícios designados pelo professor logado
+app.get('/api/exercicios-designados', requireProfessor, (req, res) => {
+  try {
+    res.json(getExerciciosDesignadosProfessor(req.session.userId));
+  } catch (error) {
+    console.error('Erro ao listar exercícios designados:', error);
+    res.status(500).json({ error: 'Erro ao listar exercícios designados' });
+  }
+});
+
+// Deletar designação de exercício
+app.delete('/api/exercicios-designados/:id', requireProfessor, (req, res) => {
+  try {
+    const { id } = req.params;
+    deleteExercicioDesignado(id);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Erro ao deletar designação:', error);
+    res.status(500).json({ error: 'Erro ao deletar designação' });
+  }
+});
+
+// ============================================
+// ROTAS DE HISTÓRICO DE TREINOS
+// ============================================
+
+// Concluir exercício (aluno marca como feito)
+app.post('/api/concluir-exercicio', requireAuth, (req, res) => {
+  try {
+    const { exercicio_designado_id, tipo_realizado, valor_realizado } = req.body;
+
+    if (!exercicio_designado_id || !tipo_realizado || !valor_realizado) {
+      return res.status(400).json({ error: 'Todos os campos são obrigatórios' });
+    }
+
+    const usuario = getUsuarioById(req.session.userId);
+    if (usuario.tipo !== 'aluno') {
+      return res.status(403).json({ error: 'Apenas alunos podem concluir exercícios' });
+    }
+
+    const result = concluirExercicio(
+      exercicio_designado_id,
+      req.session.userId,
+      tipo_realizado,
+      valor_realizado
+    );
+    res.json({ success: true, id: result.lastInsertRowid });
+  } catch (error) {
+    console.error('Erro ao concluir exercício:', error);
+    res.status(500).json({ error: 'Erro ao concluir exercício' });
+  }
+});
+
+// Obter histórico de treinos do aluno logado
+app.get('/api/meu-historico', requireAuth, (req, res) => {
+  try {
+    const usuario = getUsuarioById(req.session.userId);
+
+    if (usuario.tipo !== 'aluno') {
+      return res.status(403).json({ error: 'Apenas alunos podem acessar seu histórico' });
+    }
+
+    res.json(getHistoricoAluno(req.session.userId));
+  } catch (error) {
+    console.error('Erro ao obter histórico:', error);
+    res.status(500).json({ error: 'Erro ao obter histórico' });
+  }
+});
+
+// Obter histórico de treinos do aluno por mês (para calendário)
+app.get('/api/meu-historico/:ano/:mes', requireAuth, (req, res) => {
+  try {
+    const { ano, mes } = req.params;
+    const usuario = getUsuarioById(req.session.userId);
+
+    if (usuario.tipo !== 'aluno') {
+      return res.status(403).json({ error: 'Apenas alunos podem acessar seu histórico' });
+    }
+
+    res.json(getHistoricoAlunoMes(req.session.userId, parseInt(ano), parseInt(mes)));
+  } catch (error) {
+    console.error('Erro ao obter histórico mensal:', error);
+    res.status(500).json({ error: 'Erro ao obter histórico mensal' });
+  }
+});
+
+// Listar alunos (para professores designarem exercícios)
+app.get('/api/alunos', requireProfessor, (req, res) => {
+  try {
+    const todosUsuarios = getAllUsuarios();
+    const alunos = todosUsuarios.filter(u => u.tipo === 'aluno');
+    res.json(alunos);
+  } catch (error) {
+    console.error('Erro ao listar alunos:', error);
+    res.status(500).json({ error: 'Erro ao listar alunos' });
+  }
+});
+
+// ============================================
 // ROTAS DE GERENCIAMENTO DE USUÁRIOS (ADMIN)
 // ============================================
 
@@ -284,7 +518,7 @@ app.post('/api/usuarios', requireAdmin, async (req, res) => {
       return res.status(400).json({ error: 'Todos os campos são obrigatórios' });
     }
 
-    if (!['aluno', 'professor', 'atendente', 'admin'].includes(tipo)) {
+    if (!['aluno', 'professor', 'professoradm', 'atendente', 'admin'].includes(tipo)) {
       return res.status(400).json({ error: 'Tipo de usuário inválido' });
     }
 
@@ -307,7 +541,7 @@ app.put('/api/usuarios/:id', requireAdmin, (req, res) => {
       return res.status(400).json({ error: 'Todos os campos são obrigatórios' });
     }
 
-    if (!['aluno', 'professor', 'atendente', 'admin'].includes(tipo)) {
+    if (!['aluno', 'professor', 'professoradm', 'atendente', 'admin'].includes(tipo)) {
       return res.status(400).json({ error: 'Tipo de usuário inválido' });
     }
 
