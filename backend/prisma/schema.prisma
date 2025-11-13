@@ -1,0 +1,174 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+// Configurações da escola
+model ConfigEscola {
+  id    Int    @id @default(autoincrement())
+  chave String @unique
+  valor String
+
+  @@map("config_escola")
+}
+
+// Esportes
+model Esporte {
+  id        Int     @id @default(autoincrement())
+  nome      String
+  descricao String?
+  ativo     Boolean @default(true)
+  turmas    Turma[]
+
+  @@map("esportes")
+}
+
+// Turmas
+model Turma {
+  id                Int            @id @default(autoincrement())
+  esporteId         Int            @map("esporte_id")
+  nome              String
+  diaSemana         String         @map("dia_semana")
+  horario           String
+  vagasDisponiveis  Int            @default(10) @map("vagas_disponiveis")
+  ativo             Boolean        @default(true)
+  esporte           Esporte        @relation(fields: [esporteId], references: [id])
+  agendamentos      Agendamento[]
+
+  @@map("turmas")
+}
+
+// Leads (potenciais clientes)
+model Lead {
+  id           Int            @id @default(autoincrement())
+  telefone     String         @unique
+  nome         String?
+  nomeFilho    String?        @map("nome_filho")
+  paraQuem     String?        @map("para_quem")
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+  agendamentos Agendamento[]
+
+  @@map("leads")
+}
+
+// Agendamentos de aulas experimentais
+model Agendamento {
+  id        Int      @id @default(autoincrement())
+  leadId    Int      @map("lead_id")
+  turmaId   Int      @map("turma_id")
+  dataAula  String   @map("data_aula")
+  horario   String
+  status    String   @default("pendente")
+  createdAt DateTime @default(now()) @map("created_at")
+  lead      Lead     @relation(fields: [leadId], references: [id])
+  turma     Turma    @relation(fields: [turmaId], references: [id])
+
+  @@map("agendamentos")
+}
+
+// Histórico de conversas do chatbot
+model Conversa {
+  id        Int      @id @default(autoincrement())
+  telefone  String
+  mensagem  String
+  role      String
+  timestamp DateTime @default(now())
+
+  @@map("conversas")
+}
+
+// Tipos de usuário
+enum TipoUsuario {
+  aluno
+  professor
+  professoradm
+  atendente
+  admin
+}
+
+// Usuários (alunos, professores, admins)
+model Usuario {
+  id                     Int                   @id @default(autoincrement())
+  nome                   String
+  email                  String                @unique
+  senha                  String
+  tipo                   TipoUsuario
+  fotoPerfil             String?               @map("foto_perfil")
+  ativo                  Boolean               @default(true)
+  createdAt              DateTime              @default(now()) @map("created_at")
+  updatedAt              DateTime              @updatedAt @map("updated_at")
+  exerciciosCriados      Exercicio[]           @relation("ExercicioCriador")
+  exerciciosDesignados   ExercicioDesignado[]  @relation("ExercicioAluno")
+  exerciciosDesignadosPor ExercicioDesignado[] @relation("ExercicioProfessor")
+  historicoTreinos       HistoricoTreino[]
+
+  @@index([tipo])
+  @@map("usuarios")
+}
+
+// Exercícios cadastrados
+model Exercicio {
+  id             Int                   @id @default(autoincrement())
+  nome           String
+  descricao      String?
+  modalidade     String
+  fundamento     String
+  subFundamento  String?               @map("sub_fundamento")
+  criadoPor      Int                   @map("criado_por")
+  ativo          Boolean               @default(true)
+  createdAt      DateTime              @default(now()) @map("created_at")
+  criador        Usuario               @relation("ExercicioCriador", fields: [criadoPor], references: [id])
+  designacoes    ExercicioDesignado[]
+
+  @@index([modalidade])
+  @@index([criadoPor])
+  @@map("exercicios")
+}
+
+// Exercícios designados para alunos
+model ExercicioDesignado {
+  id               Int               @id @default(autoincrement())
+  exercicioId      Int               @map("exercicio_id")
+  alunoId          Int               @map("aluno_id")
+  professorId      Int               @map("professor_id")
+  tipoOrientacao   String?           @map("tipo_orientacao") // 'tempo' ou 'repeticao'
+  valorOrientacao  Int?              @map("valor_orientacao")
+  status           String            @default("pendente") // 'pendente' ou 'concluido'
+  createdAt        DateTime          @default(now()) @map("created_at")
+  exercicio        Exercicio         @relation(fields: [exercicioId], references: [id])
+  aluno            Usuario           @relation("ExercicioAluno", fields: [alunoId], references: [id])
+  professor        Usuario           @relation("ExercicioProfessor", fields: [professorId], references: [id])
+  historico        HistoricoTreino[]
+
+  @@index([alunoId])
+  @@index([professorId])
+  @@index([status])
+  @@map("exercicios_designados")
+}
+
+// Histórico de treinos realizados
+model HistoricoTreino {
+  id                    Int                @id @default(autoincrement())
+  exercicioDesignadoId  Int                @map("exercicio_designado_id")
+  alunoId               Int                @map("aluno_id")
+  tipoRealizado         String             @map("tipo_realizado") // 'tempo' ou 'repeticao'
+  valorRealizado        Int                @map("valor_realizado")
+  dataConclusao         DateTime           @default(now()) @map("data_conclusao")
+  exercicioDesignado    ExercicioDesignado @relation(fields: [exercicioDesignadoId], references: [id])
+  aluno                 Usuario            @relation(fields: [alunoId], references: [id])
+
+  @@index([alunoId])
+  @@index([dataConclusao])
+  @@map("historico_treinos")
+}
