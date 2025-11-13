@@ -107,6 +107,7 @@ function createTables() {
       email TEXT UNIQUE NOT NULL,
       senha TEXT NOT NULL,
       tipo TEXT NOT NULL CHECK(tipo IN ('aluno', 'professor', 'professoradm', 'atendente', 'admin')),
+      foto_perfil TEXT,
       ativo INTEGER DEFAULT 1,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -714,6 +715,14 @@ export const updateUsuarioSenha = (id, senhaHash) => {
   db.run(
     "UPDATE usuarios SET senha = ?, updated_at = datetime('now') WHERE id = ?",
     [senhaHash, id]
+  );
+  saveDB();
+};
+
+export const updateUsuarioFoto = (id, fotoPerfil) => {
+  db.run(
+    "UPDATE usuarios SET foto_perfil = ?, updated_at = datetime('now') WHERE id = ?",
+    [fotoPerfil, id]
   );
   saveDB();
 };

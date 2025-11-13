@@ -7,6 +7,7 @@ import Badge from '../components/Badge';
 import Input, { Select, Textarea } from '../components/Input';
 import Alert from '../components/Alert';
 import Loading from '../components/Loading';
+import ImageUpload from '../components/ImageUpload';
 import './ProfessorPage.css';
 
 const ProfessorAdmPage = () => {
@@ -34,6 +35,13 @@ const ProfessorAdmPage = () => {
     valor_orientacao: ''
   });
 
+  const [formAluno, setFormAluno] = useState({
+    nome: '',
+    email: '',
+    senha: '',
+    foto_perfil: null
+  });
+
   useEffect(() => {
     if (user) {
       carregarExercicios();
@@ -44,6 +52,9 @@ const ProfessorAdmPage = () => {
   useEffect(() => {
     if (user && activeTab === 'designar') {
       carregarDesignados();
+    }
+    if (user && activeTab === 'alunos') {
+      carregarAlunos();
     }
   }, [user, activeTab]);
 
@@ -154,6 +165,42 @@ const ProfessorAdmPage = () => {
     }
   };
 
+  const criarAluno = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await fetch('/api/usuarios', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...formAluno,
+          tipo: 'aluno'
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Erro ao criar aluno');
+      }
+
+      const result = await response.json();
+
+      // Se tem foto, atualizar
+      if (formAluno.foto_perfil) {
+        await fetch(`/api/usuarios/${result.id}/foto`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ foto: formAluno.foto_perfil })
+        });
+      }
+
+      showAlert('Aluno criado com sucesso! ✅', 'success');
+      setFormAluno({ nome: '', email: '', senha: '', foto_perfil: null });
+      carregarAlunos();
+    } catch (error) {
+      showAlert(error.message, 'error');
+    }
+  };
+
   const showAlert = (message, variant) => {
     setAlert({ message, variant });
     setTimeout(() => setAlert(null), 5000);
@@ -177,6 +224,12 @@ const ProfessorAdmPage = () => {
           onClick={() => setActiveTab('designar')}
         >
           <span>📋</span> Designar
+        </button>
+        <button
+          className={`tab ${activeTab === 'alunos' ? 'active' : ''}`}
+          onClick={() => setActiveTab('alunos')}
+        >
+          <span>👨‍🎓</span> Alunos
         </button>
       </div>
 
@@ -359,6 +412,82 @@ const ProfessorAdmPage = () => {
                         <Button variant="danger" size="sm" onClick={() => deletarDesignacao(d.id)}>
                           Remover
                         </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+          </div>
+        )}
+
+        {/* Tab: Alunos */}
+        {activeTab === 'alunos' && (
+          <div className="tab-content fade-in">
+            <Card title="Criar Novo Aluno">
+              <form onSubmit={criarAluno}>
+                <ImageUpload
+                  currentImage={formAluno.foto_perfil}
+                  onImageChange={(foto) => setFormAluno({ ...formAluno, foto_perfil: foto })}
+                  label="Foto do Aluno (Opcional)"
+                />
+
+                <Input
+                  label="Nome Completo *"
+                  value={formAluno.nome}
+                  onChange={(e) => setFormAluno({ ...formAluno, nome: e.target.value })}
+                  placeholder="Ex: João Silva"
+                  required
+                />
+
+                <Input
+                  type="email"
+                  label="Email *"
+                  value={formAluno.email}
+                  onChange={(e) => setFormAluno({ ...formAluno, email: e.target.value })}
+                  placeholder="aluno@email.com"
+                  required
+                />
+
+                <Input
+                  type="password"
+                  label="Senha *"
+                  value={formAluno.senha}
+                  onChange={(e) => setFormAluno({ ...formAluno, senha: e.target.value })}
+                  placeholder="Mínimo 6 caracteres"
+                  required
+                  minLength={6}
+                />
+
+                <Button type="submit" variant="success" fullWidth>
+                  Criar Aluno
+                </Button>
+              </form>
+            </Card>
+
+            <Card title="Alunos Cadastrados">
+              {alunos.length === 0 ? (
+                <div className="empty-state">
+                  <div className="empty-icon">👨‍🎓</div>
+                  <p>Nenhum aluno cadastrado ainda.</p>
+                </div>
+              ) : (
+                <div className="exercicios-lista">
+                  {alunos.map((aluno) => (
+                    <div key={aluno.id} className="exercicio-item aluno-item">
+                      <div className="aluno-info">
+                        <div className="aluno-avatar">
+                          {aluno.foto_perfil ? (
+                            <img src={aluno.foto_perfil} alt={aluno.nome} />
+                          ) : (
+                            <span>{aluno.nome?.charAt(0).toUpperCase()}</span>
+                          )}
+                        </div>
+                        <div>
+                          <h4>{aluno.nome}</h4>
+                          <p>{aluno.email}</p>
+                          <Badge variant="info">Aluno</Badge>
+                        </div>
                       </div>
                     </div>
                   ))}

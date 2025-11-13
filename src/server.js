@@ -25,6 +25,7 @@ import {
   createUsuario,
   updateUsuario,
   updateUsuarioSenha,
+  updateUsuarioFoto,
   deleteUsuario,
   getExercicios,
   getExercicioById,
@@ -580,6 +581,46 @@ app.delete('/api/usuarios/:id', requireAdmin, (req, res) => {
   } catch (error) {
     console.error('Erro ao excluir usuário:', error);
     res.status(500).json({ error: 'Erro ao excluir usuário' });
+  }
+});
+
+// Atualizar foto de perfil (usuário pode atualizar sua própria foto)
+app.put('/api/meu-perfil/foto', requireAuth, async (req, res) => {
+  try {
+    const { foto } = req.body;
+
+    if (!foto) {
+      return res.status(400).json({ error: 'Foto é obrigatória' });
+    }
+
+    // Validar que é uma imagem base64
+    if (!foto.startsWith('data:image/')) {
+      return res.status(400).json({ error: 'Formato de imagem inválido' });
+    }
+
+    updateUsuarioFoto(req.session.userId, foto);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Erro ao atualizar foto:', error);
+    res.status(500).json({ error: 'Erro ao atualizar foto' });
+  }
+});
+
+// Admin pode atualizar foto de qualquer usuário
+app.put('/api/usuarios/:id/foto', requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { foto } = req.body;
+
+    if (foto && !foto.startsWith('data:image/')) {
+      return res.status(400).json({ error: 'Formato de imagem inválido' });
+    }
+
+    updateUsuarioFoto(id, foto);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Erro ao atualizar foto:', error);
+    res.status(500).json({ error: 'Erro ao atualizar foto' });
   }
 });
 

@@ -1,0 +1,125 @@
+.image-upload {
+  margin-bottom: var(--spacing-lg);
+}
+
+.image-upload-label {
+  display: block;
+  margin-bottom: var(--spacing-sm);
+  color: var(--text-primary);
+  font-weight: 600;
+  font-size: 0.875rem;
+  letter-spacing: 0.025em;
+}
+
+.image-upload-container {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+}
+
+.image-preview {
+  width: 120px;
+  height: 120px;
+  border-radius: var(--radius-full);
+  border: 3px solid var(--border-light);
+  overflow: hidden;
+  background: var(--bg-tertiary);
+  flex-shrink: 0;
+}
+
+.preview-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.preview-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary);
+}
+
+.preview-placeholder span {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.preview-placeholder p {
+  font-size: 0.75rem;
+  margin: 0;
+}
+
+.image-upload-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.image-upload-input {
+  display: none;
+}
+
+.btn-upload,
+.btn-remove {
+  padding: 0.625rem 1.25rem;
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  font-family: inherit;
+}
+
+.btn-upload {
+  background: var(--primary);
+  color: white;
+  display: inline-block;
+  text-align: center;
+}
+
+.btn-upload:hover {
+  background: var(--primary-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(255, 107, 53, 0.3);
+}
+
+.btn-remove {
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+}
+
+.btn-remove:hover {
+  background: var(--border-medium);
+}
+
+.image-upload-hint {
+  margin-top: var(--spacing-sm);
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+}
+
+@media (max-width: 768px) {
+  .image-upload-container {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .image-preview {
+    width: 100px;
+    height: 100px;
+  }
+
+  .image-upload-actions {
+    width: 100%;
+  }
+
+  .btn-upload,
+  .btn-remove {
+    width: 100%;
+  }
+}

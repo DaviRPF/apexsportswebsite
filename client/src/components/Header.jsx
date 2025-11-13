@@ -38,7 +38,13 @@ const Header = ({ user }) => {
         </div>
 
         <div className="header-user">
-          <div className="user-avatar">{user?.nome?.charAt(0).toUpperCase()}</div>
+          <div className="user-avatar">
+            {user?.foto_perfil ? (
+              <img src={user.foto_perfil} alt={user.nome} className="avatar-image" />
+            ) : (
+              user?.nome?.charAt(0).toUpperCase()
+            )}
+          </div>
           <div className="user-info">
             <p className="user-name">{user?.nome}</p>
             <button className="btn-logout" onClick={handleLogout}>
