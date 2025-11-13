@@ -7,31 +7,31 @@
 }
 
 :root {
-  /* Colors */
-  --primary: #667eea;
-  --primary-dark: #5a67d8;
-  --primary-light: #7f9cf5;
-  --secondary: #764ba2;
-  --success: #48bb78;
-  --success-light: #68d391;
-  --danger: #f56565;
-  --danger-light: #fc8181;
-  --warning: #ed8936;
-  --info: #4299e1;
+  /* Colors - Laranja (Fogo), Branco, Preto/Grafite, Cinza */
+  --primary: #FF6B35;
+  --primary-dark: #E55A2B;
+  --primary-light: #FF8C5A;
+  --secondary: #FF4500;
+  --success: #FF6B35;
+  --success-light: #FF8C5A;
+  --danger: #D32F2F;
+  --danger-light: #E57373;
+  --warning: #FF6B35;
+  --info: #FF8C5A;
 
   /* Backgrounds */
-  --bg-primary: #f7fafc;
-  --bg-secondary: #ffffff;
-  --bg-tertiary: #edf2f7;
+  --bg-primary: #F5F5F5;
+  --bg-secondary: #FFFFFF;
+  --bg-tertiary: #E0E0E0;
 
   /* Text */
-  --text-primary: #1a202c;
-  --text-secondary: #4a5568;
-  --text-tertiary: #718096;
+  --text-primary: #1A1A1A;
+  --text-secondary: #424242;
+  --text-tertiary: #757575;
 
   /* Borders */
-  --border-light: #e2e8f0;
-  --border-medium: #cbd5e0;
+  --border-light: #E0E0E0;
+  --border-medium: #BDBDBD;
 
   /* Shadows */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
